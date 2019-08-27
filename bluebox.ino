@@ -37,6 +37,8 @@ Adafruit_GPS GPS(&mySerial);
 boolean usingInterrupt = false;
 #endif
 
+//#define CONSOLE
+
 // logfile and messages
 File logfile;
 //File msgfile;
@@ -57,7 +59,6 @@ void die(uint8_t errno) {
     }
   }
 }
-
 
 // One time setup
 
