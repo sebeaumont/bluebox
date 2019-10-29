@@ -1,10 +1,12 @@
+
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_GPS.h>
 #include <SoftwareSerial.h>
 #include <SD.h>
 #include <avr/sleep.h>
-#include <Adafruit_LIS3DH.h>
+//#include <Adafruit_LIS3DH.h>
+#include <Adafruit_LSM9DS1.h>
 #include <Adafruit_Sensor.h>
 
 // Using Ultimate GPS shield and LIS3DH accelerometer
@@ -26,7 +28,9 @@
 // Devices:
 
 // I2C for acceleromter
-Adafruit_LIS3DH lis = Adafruit_LIS3DH();
+
+//Adafruit_LIS3DH lis = Adafruit_LIS3DH();
+Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
 #define LIS_I2C 0x18
 
 // GPS software serial
@@ -73,7 +77,7 @@ void setup() {
 #ifdef CONSOLE
   // connect at 115200 so we can read the GPS fast enough and echo without dropping chars
   Serial.begin(115200);
-  Serial.println("I3 BlueBox(tm) starting up...");
+  Serial.println("Saiλdata BlueBox™ Research Prototype (v2.0.1) starting up...");
 #endif
 
   // fatal error codes
@@ -92,17 +96,21 @@ void setup() {
   }
 
   // i2c for accelerometer
-  if (! lis.begin(LIS_I2C)) {
+  if (! lsm.begin()) {
 #ifdef CONSOLE
-    Serial.println("LIS3DH Acceleromoter could not start!");
+    Serial.println("LSM9DS1 9-Axis not detected!");
 #endif
     die(3); 
   }
   
-  // setup accelerometer G range
-  lis.setRange(LIS3DH_RANGE_4_G);   // 2, 4, 8 or 16 G!
-  //lis.setDataRate(LIS3DH_DATARATE_10_HZ);
+  /////////////////////////////////////////////
+  /// init operating parameters for LSM9DS1 ///
+  /////////////////////////////////////////////
   
+  lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_4G);    // 2, 4, 8 or 16 G!
+  lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);     // 4, 8, 12, 16 Gauss
+  lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_245DPS); // 245, 400, 2000 DPS
+ 
   
   // init file for log
   char filename[15];
@@ -129,19 +137,6 @@ void setup() {
     die(5);
   }
 
-  // create global file handle for messages
-  /*
-  strcpy(filename, "BBXERROR.TXT");
-  msgfile = SD.open(filename, FILE_WRITE);
-  if(! msgfile) {
-#ifdef CONSOLE
-    Serial.print("SD Could not open message file: "); Serial.print(filename); Serial.println(" for writing!");
-#endif
-    die(5);
-  }
-  */
-  
-  //msgfile.println("I3 BlackBox(tm) Starting up - Copyright (c) 2019 - All Rights Reserved");
   // connect to the GPS at the desired rate
   GPS.begin(9600);
 
@@ -163,11 +158,6 @@ void setup() {
 #ifndef ESP8266 // Not on ESP8266
   useInterrupt(true);
 #endif
-  /*
-  msgfile.print("LIS3DH Accelerometer range: "); msgfile.print(2 << lis.getRange());  msgfile.println("g");
-  msgfile.println("BlueBox is alive and tracking via GPS");
-  msgfile.flush();
-  */
 }
 
 
@@ -211,13 +201,22 @@ void loop() {
 #endif
   }
   
-  // Read accelerometer data 
-  lis.read();
+  // Read accelerometer data
+  sensors_event_t accel, mag, gyro, temp; 
+  lsm.getEvent(&accel, &mag, &gyro, &temp);
+  
   static char line[128];
-  sprintf(line, "$VRXYZ,%d,%d,%d\r\n", lis.x, lis.y, lis.z);
+  sprintf(line, "$PAXYZ,%d,%d,%d\r\n", accel.acceleration.x, accel.acceleration.y, accel.acceleration.z); // m/s^2
   uint8_t stringsize = strlen(line);
   logfile.write(line, stringsize);
-  delay(200); // wait so that we only log at 5Hz to save space.
+  sprintf(line, "$PMXYZ,%d,%d,%d\r\n", mag.magnetic.x, mag.magnetic.y, mag.magnetic.z);
+  stringsize = strlen(line);
+  logfile.write(line, stringsize);
+  sprintf(line, "$PGXYZ,%d,%d,%d\r\n", gyro.gyro.x, gyro.gyro.y, gyro.gyro.z);
+  stringsize = strlen(line);
+  logfile.write(line, stringsize);
+  
+  delay(200); // wait so that we only log at 5Hz to save log space.
   
   // if a sentence is received, we can check the checksum, parse it...
   if (GPS.newNMEAreceived()) {
@@ -245,10 +244,9 @@ void loop() {
         die(7);
     }
 #ifdef CONSOLE
-   Serial.println("GPS NMEA sentence logged");
+   Serial.println("GPS NMEA sentences logged");
 #endif
     logfile.flush();
-    //msgfile.flush();
   }
   
 }
