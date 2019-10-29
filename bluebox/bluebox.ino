@@ -9,10 +9,12 @@
 #include <Adafruit_LSM9DS1.h>
 #include <Adafruit_Sensor.h>
 
-// Using Ultimate GPS shield and LIS3DH accelerometer
+#define GPSECHO false
+
+// Using Ultimate GPS shield and LSM9DS1
 // read GPS NMEA sentences from software serial port and log minimal navigation sentences 
-// (position, elevation, course and speed) every second and 3-axis accelerations to SD based
-// log file. 
+// (position, elevation, course and speed) every second and
+// 9-axis accelerations to SD device log file. 
 
 // IO: Use software SPI for SD card io and i2c for the accelerometer
 
