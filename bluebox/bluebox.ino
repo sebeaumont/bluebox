@@ -5,11 +5,9 @@
 #include <SoftwareSerial.h>
 #include <SD.h>
 #include <avr/sleep.h>
-//#include <Adafruit_LIS3DH.h>
 #include <Adafruit_LSM9DS1.h>
 #include <Adafruit_Sensor.h>
 
-#define GPSECHO false
 
 // Using Ultimate GPS shield and LSM9DS1
 // read GPS NMEA sentences from software serial port and log minimal navigation sentences 
@@ -31,7 +29,6 @@
 
 // I2C for acceleromter
 
-//Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
 #define LIS_I2C 0x18
 
@@ -44,6 +41,7 @@ boolean usingInterrupt = false;
 #endif
 
 //#define CONSOLE
+#define GPSECHO false
 
 // logfile and messages
 File logfile;
@@ -192,6 +190,10 @@ void useInterrupt(boolean v) {
 }
 #endif // ESP8266
 
+////////////////
+/// MAINLOOP ///
+////////////////
+
 void loop() {
   
   if (! usingInterrupt) {
@@ -242,7 +244,6 @@ void loop() {
     // write GPS NMEA log entry
     stringsize = strlen(stringptr);
     if (stringsize != logfile.write((uint8_t *)stringptr, stringsize)) {   // write the string to the SD file
-        //msgfile.println("SD logfile incomplete write!");
         die(7);
     }
 #ifdef CONSOLE
